@@ -1,0 +1,131 @@
+SELECT *FROM sys.database_principals; --List Database Users
+SELECT *FROM sys.Server_principals; --List Server-Level Logins.
+SELECT *FROM sys.database_role_members; -- List user Roles.
+
+EXEC sp_change_users_login 'report' -- to check Orphan user list
+EXECUTE sp_help_revlogin -- to check list of existing users list
+
+
+
+
+UPDATE STATISTICS TableName; 
+EXEC sp_updatestats; -- Update all statistics
+
+EXEC sp_monitor; -- Monitor SQL performance.
+
+EXEC xp_fixeddrives; -- check disk space.
+EXEC sp_spaceused; -- Check DB size.
+
+
+SELECT *FROM sys.dm_exec_requests; -- To check and Monitor Active/Running queries
+
+SELECT *FROM sys.dm_os_wait_stats ORDER BY wait_time_ms DESC; -- Check wait stats.
+
+SELECT *FROM sys.dm_os_schedulers WHERE scheduler_id >255; -- CPU Usage.
+
+SELECT *FROM sys.dm_tran_locks; --Check active Locks
+-------------------------------------------------
+DBCC CHECKDB(DataBaseName); -- Check Database Integrity.
+DBCC CHECKTABLE('TableName') -- Check Table Integrity.
+DBCC SQLPERF(LOGSPACE);  -- SQL SERVER Log space usage.
+DBCC SQLPERF('sys.dm_os_wait_stats', CLEAR); -- To clear Wait Stats.
+
+
+
+
+
+DBCC SHRINKDATABASE(DatabaseName); --Shrink Database.
+DBCC SHRINKFILE(LogFileName,TargetSizeIn MB); --Shrink LOGFILE
+
+DBCC INPUTBUFFER(Session_id); -- To check what a session is executing.
+Dbcc inputbuffer (52)
+kill session_id; -- To Kill running session.
+Kill 52
+
+
+
+--------------------
+To shrink TempDB in System DataBase.
+ 
+DBCC DROPCLEANBUFFERS;
+GO
+DBCC FREESYSTEMCACHE ('ALL');
+GO
+DBCC FREEPROCCACHE;
+GO
+DBCC FREESESSIONCACHE;
+GO
+
+--------------------------------------------
+EXEC sp_configure; -- Check Server Properties.
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE; -- Enable advanced options.
+
+EXEC sp_configure 'xp_cmdshell',1;
+RECONFIGURE;  -- Enable xp_cmdshell.
+
+SELECT *FROM sys.master_files; -- Check DB file details.
+--------------------------------------------------
+
+** To Break Mirroring.
+USE [master]
+GO
+ALTER DATABASE [3M] SET PARTNER OFF;
+GO
+
+--- ReBuild LogFile
+	ALTER DATABASE DatabaseName SET EMERGENCY;
+	ALTER DATABASE DatabaseName SET SINGLE_USER;
+	DBCC CHECKDB(DatabaseName,REPAIR_ALLOW_DATA_LOSS);
+	ALTER DATABASE DatabaseName SET MULTI_USER;
+-----------------------
+ALTER INDEX IndexName ON TableName REBUILD; -- Rebuild IndexName
+ALTER INDEX IndexName ON TableName REORGANIZE; -- ReOrganize INDEX
+-----------------------------------------------
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+	
+
+-- To check running sessions
+sp_whoisactive
+sp_who2 active
+sp_who2
+
+SELECT @@VERSION; -- CHECk SQL server version.
+
+----------BACKUP AND RESTORE -----------------------------
+BACKUP DATABSE [OccHlth] TO DISK = N'\\BJCDBA101\123456\OccHlth.bak'
+WITH NOFORMAT, INIT, BUFFERCOUNT = 400, MAXTRANSFERSIZE = 4194304, NAME = N'OccHlth ',
+SKIP, REWIND, NOUNLOAD, COMPRESSION, STATS = 10 
+
+RESTORE DATABASE [OccHlth] FROM  DISK = N'E:\backup\OccHlth.bak' WITH  FILE = 1,  NOUNLOAD,  REPLACE,  STATS = 5 
+--------------------
+backup database MMM360DB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.bak' with differential,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304,stats=5
+backup log MMM360DB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.trn' with stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+
+Restore database MMM360DB from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.bak' with norecovery,stats=5
+Restore log MMM360DB from disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.trn' with norecovery,stats=5
+--------------------------------------------------
+----------To check how much database restoration completed.---------------------
+SELECT session_id as SPID, 
+command, 
+a.text AS Query, 
+start_time, 
+percent_complete, 
+dateadd(second,estimated_completion_time/1000, getdate()) as estimated_completion_time
+FROM sys.dm_exec_requests r CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) a
+WHERE r.command in ('BACKUP DATABASE','RESTORE DATABASE')   ---To check how much database restoration completed.
+--------------------------------
+
+---------------------------
+Configure gMSA on Server
+Computer Management -> Users and Groups -> Administrator -> Add gMSA account -> Reboot Server.
+1.Test-ADServiceAccount <gMSAsqlservice> // if result is true gMSA configured successfully.
+2.Import-Module ActiveDirectory
+3.Install-ADServiceAccount <gMSAsqlservice> 
+4.Test-ADServiceAccount <gMSAsqlservice> 
+
+-------------------
+

@@ -1,0 +1,7 @@
+What is Temp DB Configuration?
+
+During the Installation giving the dedicated Drive is recommended, we can also give the no of TempDB files fields configured that based on the no of logical processors that we have
+if we have 4 logical processors we have to add 4 Temp DB files, if we have more than 8 logical processors we have to give 8 files
+we can also add more than 8 but recommended is 8.
+How many file can we add for TempDB?
+its equals to no of Processors that we have, if we have more than 8, the maximum recommended is 8.

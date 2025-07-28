@@ -1,0 +1,33 @@
+Types of Recovery models in SQL
+1. Simple : The basic recovery model in SQL Server is the simple recovery model. 
+	This model automatically removes the transaction log records on every completed transaction. 
+	So, it doesn’t support transaction log backups, only full or differential backup.
+	If there is a malfunction or crash in the database, then you can restore it with the recent full or differential backup.
+	We cannot perform a point-in-time restore when using the simple recovery model. So, this may lead to a loss of the data.
+		Advantage: The simple recovery model will automatically remove the transaction logs, so the disk size required is very small.
+		Disadvantages : The major drawback of the simple recovery model is that it does not support point-in-time restore. 
+		So, it may cause a loss of data during a database malfunction.
+
+2. Full : The full recovery model in SQL Server maintains the transaction logs until it is backed up. 
+	Using this model, we can restore the database at any point in time and there will not be any data loss.
+	
+	full recovery model records the transaction logs. But, it will not remove them automatically on each completed transaction.
+	 (DDL (Data Definition Language) + DML (Data Manipulation Language)) are fully recorded in the transaction log file.
+		Advantages: We can restore the data to any arbitrary point. Thus, this model helps us avoid data loss.
+		Disadvantages : The transaction log file size is huge, and it grows in size with every transaction.
+		It requires the administration to closely monitor the growing log size.
+		If the transaction log is full, then the database will reject further transactions.
+
+3. Bulk Logged : The bulk-logged recovery model is similar to the full recovery model. 
+	The only difference is that the transaction log size is minimized when performing bulk-logged operations like bulk insert, select into and create index. 
+	So, the transaction log size in this model is small when comparing to the full recovery model.
+
+
+To find the recovery model in a database.
+	SELECT name, recovery_model_desc
+	FROM sys.databases
+	WHERE name = 'My_Database_Name' ;
+
+to change the recovery model of a database
+	USE [My_Database_Name] ;
+	ALTER DATABASE [My_Database_Name] SET RECOVERY FULL ;

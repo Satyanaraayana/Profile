@@ -1,0 +1,8 @@
+Types of Restore modes :
+	--Restore With no recovery -
+		If we have multiple DBs backups then we have to use this Restore With no recovery.
+		it is not accessable to the other users when ever we using Restore With no recovery, it means it is under restoring.
+	--Restore With recovery - 
+		DB will be online and it will be accessable to the user, it will be use full when ever we are having single DB backup.
+	--Restore Stand by - 
+		It is almost Restore With no recovery but users are able to read the data but unable to modify the data.

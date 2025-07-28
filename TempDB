@@ -5,3 +5,29 @@ if we have 4 logical processors we have to add 4 Temp DB files, if we have more 
 we can also add more than 8 but recommended is 8.
 How many file can we add for TempDB?
 its equals to no of Processors that we have, if we have more than 8, the maximum recommended is 8.
+
+To check Tempdbs 
+Select name, physical_name as Currentlocation
+From sys.master_files
+Where database_ID= DB_ID(N’tempdb’);
+-----------------------------------------------
+
+
+Alter Logical Path/To change physical path
+
+USE MASTER;
+ALTER DATABASE tempdb
+MODIFY FILE (NAME =  Tempdev; FILENAME = ‘C:\SQL_TempdbNew\Tempdb.mdf’;
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME =  Temp2; FILENAME = ‘C:\SQL_TempdbNew\Tempdb2.ndf’;
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME =  Temp3; FILENAME = ‘C:\SQL_TempdbNew\Tempdb3.ndf’;
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME =  Temp4; FILENAME = ‘C:\SQL_TempdbNew\Tempdb4.ndf’;
+GO
+ALTER DATABASE tempdb
+MODIFY FILE (NAME =  templog; FILENAME = ‘C:\SQL_TempdbNew\templog.ldf’;
+GO

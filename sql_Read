@@ -1,109 +1,10 @@
-SQL Server Architecture
-
-	Instances - we can create 49 instances - Memory unit
-		Databases
-			Data and log files must have if we miss any one DB will be in offline
-				Data --Primary file group
-					Extent 	
-						pages- each Extent have 8 pages - each page have 8kb
 
 
+Learn how to work data file and log file in SQL server		
+log sequence number (LSN)
 
-MS SQL Server is a client-server architecture.
-MS SQL Server process starts with the client application sending a request.
-The SQL Server accepts, processes and replies to the request with processed data.
-
-SQL client application send request by using 'Protocal Layer (SNI)', 
-then request sends to 'Relational Engine (RE)' 
-then RE will do Query parsing, Optimization and Execution
-
-then Query Executor works with 'Storage Engine' which have access methodes and 
-	Access methodes works with Buffer Manager 
-		(Buffer Manager has a Plan cache, Data cache(Pages), Buffer Pool), BM works with Data Files).
-	And Transaction Logs, to get Data from there. 
-	
-	Then it sends data to Executer then it went to Protocal layer  then it back to SQL Server Client.
-
-Table of Content:
-
-**Protocol Layer SNI (Server Name Identification)
-	MS SQL Server Protocol Layer supports 3 protocals and all 3 use TDS which stands Tabulor Data Stream
-	
-	**Shared Memory: Client and MS SQL server run on same machine both can communicate via shared memory protocl.
-
-	**TCP/IP : MS SQL Server provides capability to interact via TCP/IP protocal, where Client and MS SQL servers are remote to each other and installed on separate machines.
-
-	In SQL Management Studio – For Connection via TCP\IP, “Server Name” Option has to be “Machine\Instance of the server.”
-	SQL server uses port 1433 in TCP/IP.
-
-	**Named Pipes : MS SQL Server provides capability to interact via the Named Pipes protocal, Here Client and MS SQL servers are connection via LAN.
-
-	**What is TDS (Tabulor Data Stream)?
-	All 3 protocols use TDS packets. TDS is encapsulated in Network packets. This enables data transfer from the client machine to the server machine.
-
-**Relational Engine (is also know as Query processer, it has SQL server components that determine what exactly a query needs to do and how it can be done best. )
-	CMD Parser :
-	Optimizer :
-	Query Executor :
-**Storage Engine ()
-	File types
-	Access Method
-	Buffer Manager
-	Plan Cache
-Data Parsing: Buffer cache & Data Storage
-Transaction Manager
-**Summary
-
-----------------------------------------------------
-------------------------------------------------
-1. master Database:
-Purpose: Stores system-level information for the SQL Server instance, such as logins, linked servers, and configuration settings.
-Key Features: Essential for starting and managing the SQL Server instance. Cannot start if unavailable.
-Note: System objects are now stored in the Resource database. 
-
-2. msdb Database:
-Purpose: Used by SQL Server Agent for scheduling jobs and alerts, as well as for managing Database Mail, Service Broker, and replication. 
-Key Features: Stores backup and restore history, and information related to SQL Server Agent. 
-Note: Contains pre-defined database roles for managing access. 
-
-3. model Database:
-Purpose: Serves as the template for creating new user databases.
-Key Features: Options set in the model database, such as collation and recovery model, are applied to all newly created databases. 
-
-4. tempdb Database:
-Purpose: A workspace for holding temporary objects, such as temporary tables, table variables, and intermediate result sets. 
-Key Features: Used for sorts, spools, and other internal engine operations. 
-Note: Is a shared resource for the entire instance and can experience resource contention. 
-
-5. resource Database:
-Purpose: A read-only database containing the system objects of SQL Server.
-Key Features: System objects are physically stored in the Resource database but logically appear in the sys schema of every database.
-Note: Helps in faster and easier SQL Server upgrades
-
---Master 
-is used to stores Meta Data-- Data about Data
-Tables information
-path related data will related , triggers, sp, logins, Endpoint details
-
---Model 
-is prototype/is a Template 
-if we create table by using of any one of the model same properties - default properties will apply to new DB
-
-If Master and Model DBs are down SQL server will not start
-
---MSDB --Supervisor, All jobs will run on schedule time
-mainly it is used for automation of jobs.
-
---Tempdb --is like a Ram
-If you want see records in a table it will take dump into TempDB to speed up query result
-
-
---MSresourceDB - Hidden Database -- physical files are stored in bin folder
-	that is Hidden and Read only DB, that we cont see through the  SSMS.
-
---When ever we configure replication there is Distribution DB will created
-
-Total we have 6 system DBs
+Listner port Number: 5022
+In mirrioring we need to update gMSA account
 
 ------------------------------------------------------
 
@@ -119,8 +20,6 @@ Total we have 6 system DBs
 - **Synchronous:** Zero data loss, higher latency (waits for secondary commit). Ideal for critical data.  
 - **Asynchronous:** Lower latency (no wait for secondary), but risk of data loss during failover. Suitable for DR replicas.  
  
----
- 0-
 ### **2. Backup & Recovery**  
 #### **Q3: A database’s transaction log is growing uncontrollably. How would you troubleshoot?**  
 **A:**  
@@ -308,33 +207,9 @@ When ever we configure replication there is Distribution DB will created
 there is another DB is call Resource DB, that is Hidden and Read only DB, that we cont see through the  SSMS.
 Total we have 6 system DBs
 
---What is Temp DB Configuration?
-During the Installation giving the dedicated Drive is recommended, we can also give the no of TempDB files fields configured that based on the no of logical processors that we have
-if we have 4 logical processors we have to add 4 Temp DB files, if we have more than 8 logical processors we have to give 8 files
-we can also add more than 8 but recommended is 8.
-How many file can we add for TempDB?
-its equals to no of Processors that we have, if we have more than 8, the maximum recommended is 8.
 
---Architecture
-when ever the user run any SELECT or Non Select query it has to go through some process that we cant see behind the process in SQL server.
-First it go to SNA layer it contain 3 Protocols 
-	Shared Memory
-	TCP\IP
-	Named Pipe,  base on the type of connection we have.
-	if the connection is good then statement will go to the `command Parser, 
-		it will check the Synthetic and semantic errors of the query, and create Query tree.
-	if it is all good query tree sends query to the Query Optimizer, 
-	it is responsible for create best and optimal execution plan, based on the statics are available.
-	
-	and estimated no of rows, after creating execution plan it will sends to the execution Plan, 
-	then it will go to the Access methods, AM will decide if it is a select statement or non Select statement
-	if it is a non Select statement it will go to the Transaction manager and eventually it will go for the Tlog file,
-	
-	if it is Select statement it will go the Buffer manager which will contain Plan Cache, data cache, buffer pool along with the Dirty pages.
-	if the particular data is available in the Data cache then it fetch Data from the Data cache this process we call it as Logical Reads
-	if the Data is not available in the Data cache then it has to go back to the data file which is in physical Disk, 
-	then it it has to fetch Data from the Data file, this process we can call it as Physical Reads
-	Logical reads will improves the performance when compare to the Physical reads.
+
+-----------------------------------------------------------------
 	
 --What do you understand by Index, specifically Clustering and non Clustering Index.
 		 
@@ -357,15 +232,16 @@ First it go to SNA layer it contain 3 Protocols
 	and Index Scan,
 	if you perform Search on non cluster table Index Scan will happen.
 	
---Fill Factor :
-Fill factor is provided for fine-tuning index data storage and performance. 
-When an index is created or rebuilt, the fill-factor value determines the percentage of space on each leaf-level page to be filled with data,
-reserving the rest as free space for future growth.
+	--Fill Factor :
+	Fill factor is provided for fine-tuning index data storage and performance. 
+	When an index is created or rebuilt, the fill-factor value determines the percentage of space on each leaf-level page to be filled with data,
+	reserving the rest as free space for future growth.
+	
+	Schema is nothing but qualified object for the DB.
 
-Schema is nothing but qualified object for the DB.
+	--Fragmentation in SQL Server occurs when data pages in indexes are not organized logically, are overfilled, 
+	(or) are loosely filled. This can lead to poor application and server performance, as well as increased query processing time.
 
---Fragmentation in SQL Server occurs when data pages in indexes are not organized logically, are overfilled, 
-	or are loosely filled. This can lead to poor application and server performance, as well as increased query processing time.
 Q-- When will you perform Fragmentation in SQL- When Average percent of Fragmentation reached/hit 90% then we need perform Fragmentation.
 	--To reduce fragmentation in SQL Server, you can try these best practices: 
 	Use a MAINTENANCE plan, 
@@ -376,7 +252,7 @@ Q-- When will you perform Fragmentation in SQL- When Average percent of Fragment
 	**DBCC SHOWCONFIG(Table name) -  to check the fragmentation level
 
 
---Application team facing issues on DB level, for performance issues.
+Q--Application team facing issues on DB level, for performance issues.
 
 	1st we have to identify like which query is running, based on that we have to check Storeprocedure like sp_Who2 active/sp_whoisactive, 
 	we have to check Query Status like Runnable, Running, Sleeping, Suspended, howmuch CPU, RAM consuming, temp DB allocation,
@@ -401,6 +277,7 @@ Q-- When will you perform Fragmentation in SQL- When Average percent of Fragment
 	so that it can force the data to stay in the Data Cache for a long time, so that logical read will happed.
 	
 	and also we will check some Server level configuration
+
 Q. --What is the MAX DOP value,
 		(MAXDOP) is a server configuration option for running SQL Server on multiple CPUs. 
 		It controls the number of processors used to run a single statement in parallel plan execution. 
@@ -418,96 +295,36 @@ Q. --Can we configure AG and Replication on same DB?
 	Yes we can configure AlwaysOn and Replication on same DB but we cant configure Log-shipping and Mirroring.
 
 
-What is Log-shipping
-one of the High availability in SQL Server it is a DB level High availability, 
-we can sync Data between one server to another server with the help of SQL Server Agent Jobs, 
-there are 3 job will be created while configuring log-shipping.
-Backup Job at Primary side Copy job and Restore job at Secondary side.
-We have 2 modes in Log shipping
+Q.--What is Log-shipping
+	one of the High availability in SQL Server it is a DB level High availability, 
+	we can sync Data between one server to another server with the help of SQL Server Agent Jobs, 
+	there are 3 job will be created while configuring log-shipping.
+	Backup Job at Primary side Copy job and Restore job at Secondary side.
+	We have 2 modes in Log shipping
 	Log-shipping with No recovery - The secondary database in restoring mode that no one can access the DB
 	Log-shipping with StandBy - Users can connect the secondary DB and they can read DB but they are restricted to modify.
 	and we have only manual failover option, we dont have Automatic failover option.
 	
 what are the jobs creating during log-shipping ?
-Backup Job at Primary side Copy job and Restore job at Secondary side.
+	Backup Job at Primary side Copy job and Restore job at Secondary side.
 
 
-What is TUF file ?
-.TUF file is the Transaction Undo File, which is created when performing log shipping to a server in Standby mode.
-When the database is in Standby mode the database recovery happens when the log is restored;
-and this mode also creates a file on destination server with .TUF extension which is the transaction undo file.
+Q.--What is TUF file ?
+	.TUF file is the Transaction Undo File, which is created when performing log shipping to a server in Standby mode.
+	When the database is in Standby mode the database recovery happens when the log is restored;
+	and this mode also creates a file on destination server with .TUF extension which is the transaction undo file.
 
 
 Q. --What are the phases DB recovery.
 	When ever SQL server starts or Restart we have 3 phases,
-
 	Analysis phase 
 	Undo phase and Redo phase
----------------------------------------------------
-Types of Restore modes :
-	--Restore With no recovery -
-		If we have multiple DBs backups then we have to use this Restore With no recovery.
-		it is not accessable to the other users when ever we using Restore With no recovery, it means it is under restoring.
-	--Restore With recovery - 
-		DB will be online and it will be accessable to the user, it will be use full when ever we are having single DB backup.
-	--Restore Stand by - 
-		It is almost Restore With no recovery but users are able to read the data but unable to modify the data.
-	
---------------------	
-	
-Types of Recovery models in SQL
-1. Simple : The basic recovery model in SQL Server is the simple recovery model. 
-	This model automatically removes the transaction log records on every completed transaction. 
-	So, it doesn’t support transaction log backups, only full or differential backup.
-	If there is a malfunction or crash in the database, then you can restore it with the recent full or differential backup.
-	We cannot perform a point-in-time restore when using the simple recovery model. So, this may lead to a loss of the data.
-		Advantage: The simple recovery model will automatically remove the transaction logs, so the disk size required is very small.
-		Disadvantages : The major drawback of the simple recovery model is that it does not support point-in-time restore. 
-		So, it may cause a loss of data during a database malfunction.
-2. Full : The full recovery model in SQL Server maintains the transaction logs until it is backed up. 
-	Using this model, we can restore the database at any point in time and there will not be any data loss.
-	
-	full recovery model records the transaction logs. But, it will not remove them automatically on each completed transaction.
-	 (DDL (Data Definition Language) + DML (Data Manipulation Language)) are fully recorded in the transaction log file.
-		Advantages: We can restore the data to any arbitrary point. Thus, this model helps us avoid data loss.
-		Disadvantages : The transaction log file size is huge, and it grows in size with every transaction.
-		It requires the administration to closely monitor the growing log size.
-		If the transaction log is full, then the database will reject further transactions.
-3. Bulk Logged : The bulk-logged recovery model is similar to the full recovery model. 
-	The only difference is that the transaction log size is minimized when performing bulk-logged operations like bulk insert, select into and create index. 
-	So, the transaction log size in this model is small when comparing to the full recovery model.
 
-
-To find the recovery model in a database.
-	SELECT name, recovery_model_desc
-	FROM sys.databases
-	WHERE name = 'My_Database_Name' ;
-
-to change the recovery model of a database
-	USE [My_Database_Name] ;
-	ALTER DATABASE [My_Database_Name] SET RECOVERY FULL ;
- 
---------------------------------
-------------------------
-What is DCM (deferential change mapping)?:  It is a kind of page
-
-in AG can we perform backups on secondary? if yes what type of backups we ca take?
-1434 is the default port number for the SQL Server Browser services
-if we are working with SQL Server Named instances if other users trying to connect when they are remote, 
-then they are connected through TCPIP in this case browser should be enabled
-
----------------
-
-
-
-	
-	
-	
-
-Learn how to work data file and log file in SQL server		
-log sequence number (LSN)
-
-	
+Q.--What is DCM (deferential change mapping)?:  It is a kind of page
+	in AG can we perform backups on secondary? if yes what type of backups we ca take?
+	1434 is the default port number for the SQL Server Browser services
+	if we are working with SQL Server Named instances if other users trying to connect when they are remote, 
+	then they are connected through TCPIP in this case browser should be enabled
 
 --Asynchronous-commit mode: 
 	In this mode, Primary replica sends the transaction log blocks to a secondary replica, 
@@ -518,30 +335,23 @@ log sequence number (LSN)
 	In synchronous-commit mode, the primary replica waits for the transaction commit from a secondary replica. 
 	Once it receives the confirmation, SQL Server confirms to the client
 	
-	
 --Benefits of an Always On SQL Server
 
-Always On SQL Server Availability Groups support up to 9 Availability Replicas. Every Availability Group supports 1 Primary Replica and up to 8 Secondary Replicas.
-Always On Availability Group supports different forms of Availability Group Failover, 
-	namely Automatic Failover, 
-	Planned Manual Failover, and Forced Manual Failover.
-Always On SQL Server ensures your data is always available, no matter what happens.
-It can improve the performance of your IT environment with faster access to data.
-Always On SQL Server is scalable and can easily grow with your organization.
-It requires less hardware and maintenance costs than a traditional database. This will help your organization save money.
-It supports Automatic Page Repair to prevent page corruption.
-It provides secure, high-performing transport of data as it readily supports encryption and compression.
-One can easily monitor the Always On SQL Server Availability Groups on the Always On Dashboard. It further monitors the Availability Replicas and Availability Databases and evaluates results for Always On policies.
------------------------------------
+	Always On SQL Server Availability Groups support up to 9 Availability Replicas. Every Availability Group supports 1 Primary Replica and up to 8 Secondary Replicas.
+	Always On Availability Group supports different forms of Availability Group Failover, 
+		namely Automatic Failover, 
+		Planned Manual Failover, and Forced Manual Failover.
+	Always On SQL Server ensures your data is always available, no matter what happens.
+	It can improve the performance of your IT environment with faster access to data.
+	Always On SQL Server is scalable and can easily grow with your organization.
+	It requires less hardware and maintenance costs than a traditional database. This will help your organization save money.
+	It supports Automatic Page Repair to prevent page corruption.
+	It provides secure, high-performing transport of data as it readily supports encryption and compression.
+	One can easily monitor the Always On SQL Server Availability Groups on the Always On Dashboard. It further monitors the Availability Replicas and Availability Databases and evaluates results for Always On policies.
+	
 
-Listner port Number: 5022
-In mirrioring we need to update gMSA account
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Sandeep Question
- 
+---------------- 
 1.what permission need to provide from failover cluster.
 2.If primary server database encrypted are you need to create same certificate on secondary server
 3.what step follow to SQL server on premises and cloud migration 
@@ -589,42 +399,8 @@ Sandeep Question
 13. PL SQL command
  
 Venkat Question
- 
-1.ACID property
-	1. Atomicity: “All or Nothing” - transaction is atomic, it means that either the entire transaction completes fully or doesn’t execute at all. 
-	There is no in-between state.
-	Commit: If the transaction is successful, the changes are permanently applied.
-	Abort/Rollback: If the transaction fails, any changes made during the transaction are discarded.
-	-- if any part of the transaction fails, the entire process is rolled back to its original state.
-	
-	2. Consistency: Maintaining Valid Data States
-	Example: Suppose the sum of all balances in a bank system should always be constant. Before a transfer, the total balance is $700. 
-	After the transaction, the total balance should remain $700. 
-	If the transaction fails in the middle (like updating one account but not the other), 
-	the system should maintain its consistency by rolling back the transaction
-	Total before T occurs = 500 + 200 = 700 .
-	Total after T occurs = 400 + 300 = 700 .
-	
-	
-	3. Isolation: Ensuring Concurrent Transactions Don’t Interfere
-	This property ensures that when multiple transactions run at the same time, 
-	the result will be the same as if they were run one after another in a specific order. 
-	This property prevents issues such as dirty reads 
-	Transaction T:
-	T wants to transfer $50 from X to Y.
-	T reads Y (value: 500), deducts $50 from X (new X = 450), and adds $50 to Y (new Y = 550).
-	Transaction T”:
-	T” starts and reads X (value: 500) and Y (value: 500), then calculates the sum: 500 + 500 = 1000.
-	But, by the time T finishes, X and Y have changed to 450 and 550 respectively, so the correct sum should be 450 + 550 = 1000.
-	
-	4. Durability: Persisting Changes
-	the updates and modifications to the database are stored in and written to disk and they persist even if a system failure occurs. 
-	These updates now become permanent and are stored in non-volatile memory.
-	Example: After successfully transferring money from Account A to Account B, 
-	the changes are stored on disk. Even if there is a crash immediately after the commit, 
-	the transfer details will still be intact when the system recovers, ensuring durability.
-	
 
+1.ACID Properties
 2.Expalin database encryption how to work?
 
 3.What is always On default port
@@ -1131,54 +907,7 @@ A log-shipping configuration involves two or more SQL Server instances and copyi
 transaction log file from one SQL Server instance to another. Enabling Log shipping will 
 automatically transfer transaction log files and restore it across SQL servers. 
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-To check Tempdbs 
-Select name, physical_name as Currentlocation
-From sys.master_files
-Where database_ID= DB_ID(N’tempdb’);
------------------------------------------------
-Alter Logical Path/To change physical path
-
-USE MASTER;
-ALTER DATABASE tempdb
-MODIFY FILE (NAME =  Tempdev; FILENAME = ‘C:\SQL_TempdbNew\Tempdb.mdf’;
-GO
-ALTER DATABASE tempdb
-MODIFY FILE (NAME =  Temp2; FILENAME = ‘C:\SQL_TempdbNew\Tempdb2.ndf’;
-GO
-ALTER DATABASE tempdb
-MODIFY FILE (NAME =  Temp3; FILENAME = ‘C:\SQL_TempdbNew\Tempdb3.ndf’;
-GO
-ALTER DATABASE tempdb
-MODIFY FILE (NAME =  Temp4; FILENAME = ‘C:\SQL_TempdbNew\Tempdb4.ndf’;
-GO
-ALTER DATABASE tempdb
-MODIFY FILE (NAME =  templog; FILENAME = ‘C:\SQL_TempdbNew\templog.ldf’;
-GO
-----------------------------------
-Change database path you need permission for that directory and after that execute below script in sql server
- 
-ALTER DATABASE LinkedIndb SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-ALTER DATABASE LinkedIndb SET ONLINE;
- 
-ALTER DATABASE LinkedIndb MODIFY FILE 
-(
-   Name = LinkedIndb,
-   Filename = 'D:\DATA\LinkedIndb.MDF'
-);
- 
-ALTER DATABASE LinkedIndb MODIFY FILE 
-(
-   Name = LinkedIndb_log, 
-   Filename = 'D:\DATA\LinkedIndb_log.LDF'
-);
- 
-ALTER DATABASE LinkedIndb SET ONLINE;
-ALTER DATABASE LinkedIndb SET MULTI_USER;
-----------------------------------
-
+---------------------------------------------------------------------------------------
 
 Sudheer Ayyadevara
 Use the below query to get all table row count for large databases 

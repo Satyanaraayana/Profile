@@ -1,0 +1,75 @@
+SQL Server Architecture
+
+	Instances - we can create 49 instances - Memory unit
+		Databases
+			Data and log files must have if we miss any one DB will be in offline
+				Data --Primary file group
+					Extent 	
+						pages- each Extent have 8 pages - each page have 8kb
+
+
+
+MS SQL Server is a client-server architecture.
+MS SQL Server process starts with the client application sending a request.
+The SQL Server accepts, processes and replies to the request with processed data.
+
+SQL client application send request by using 'Protocal Layer (SNI)', 
+then request sends to 'Relational Engine (RE)' 
+then RE will do Query parsing, Optimization and Execution
+
+then Query Executor works with 'Storage Engine' which have access methodes and 
+	Access methodes works with Buffer Manager 
+		(Buffer Manager has a Plan cache, Data cache(Pages), Buffer Pool), BM works with Data Files).
+	And Transaction Logs, to get Data from there. 
+	
+	Then it sends data to Executer then it went to Protocal layer  then it back to SQL Server Client.
+
+Table of Content:
+
+**Protocol Layer SNI (Server Name Identification)
+	MS SQL Server Protocol Layer supports 3 protocals and all 3 use TDS which stands Tabulor Data Stream
+	
+	**Shared Memory: Client and MS SQL server run on same machine both can communicate via shared memory protocl.
+
+	**TCP/IP : MS SQL Server provides capability to interact via TCP/IP protocal, where Client and MS SQL servers are remote to each other and installed on separate machines.
+
+	In SQL Management Studio – For Connection via TCP\IP, “Server Name” Option has to be “Machine\Instance of the server.”
+	SQL server uses port 1433 in TCP/IP.
+
+	**Named Pipes : MS SQL Server provides capability to interact via the Named Pipes protocal, Here Client and MS SQL servers are connection via LAN.
+
+	**What is TDS (Tabulor Data Stream)?
+	All 3 protocols use TDS packets. TDS is encapsulated in Network packets. This enables data transfer from the client machine to the server machine.
+
+**Relational Engine (is also know as Query processer, it has SQL server components that determine what exactly a query needs to do and how it can be done best. )
+	CMD Parser :
+	Optimizer :
+	Query Executor :
+**Storage Engine ()
+	File types
+	Access Method
+	Buffer Manager
+	Plan Cache
+Data Parsing: Buffer cache & Data Storage
+Transaction Manager
+------------------------------------------
+--Architecture
+when ever the user run any SELECT or Non Select query it has to go through some process that we cant see behind the process in SQL server.
+First it go to SNA layer it contain 3 Protocols 
+	Shared Memory
+	TCP\IP
+	Named Pipe,  base on the type of connection we have.
+	if the connection is good then statement will go to the `command Parser, 
+		it will check the Synthetic and semantic errors of the query, and create Query tree.
+	if it is all good query tree sends query to the Query Optimizer, 
+	it is responsible for create best and optimal execution plan, based on the statics are available.
+	
+	and estimated no of rows, after creating execution plan it will sends to the execution Plan, 
+	then it will go to the Access methods, AM will decide if it is a select statement or non Select statement
+	if it is a non Select statement it will go to the Transaction manager and eventually it will go for the Tlog file,
+	
+	if it is Select statement it will go the Buffer manager which will contain Plan Cache, data cache, buffer pool along with the Dirty pages.
+	if the particular data is available in the Data cache then it fetch Data from the Data cache this process we call it as Logical Reads
+	if the Data is not available in the Data cache then it has to go back to the data file which is in physical Disk, 
+	then it it has to fetch Data from the Data file, this process we can call it as Physical Reads
+	Logical reads will improves the performance when compare to the Physical reads.

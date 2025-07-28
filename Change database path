@@ -1,0 +1,19 @@
+Change database path you need permission for that directory and after that execute below script in sql server
+ 
+ALTER DATABASE LinkedIndb SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE LinkedIndb SET ONLINE;
+ 
+ALTER DATABASE LinkedIndb MODIFY FILE 
+(
+   Name = LinkedIndb,
+   Filename = 'D:\DATA\LinkedIndb.MDF'
+);
+ 
+ALTER DATABASE LinkedIndb MODIFY FILE 
+(
+   Name = LinkedIndb_log, 
+   Filename = 'D:\DATA\LinkedIndb_log.LDF'
+);
+ 
+ALTER DATABASE LinkedIndb SET ONLINE;
+ALTER DATABASE LinkedIndb SET MULTI_USER;

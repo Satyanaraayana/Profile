@@ -1,0 +1,48 @@
+1. master Database:
+Purpose: Stores system-level information for the SQL Server instance, such as logins, linked servers, and configuration settings.
+Key Features: Essential for starting and managing the SQL Server instance. Cannot start if unavailable.
+Note: System objects are now stored in the Resource database. 
+
+2. msdb Database:
+Purpose: Used by SQL Server Agent for scheduling jobs and alerts, as well as for managing Database Mail, Service Broker, and replication. 
+Key Features: Stores backup and restore history, and information related to SQL Server Agent. 
+Note: Contains pre-defined database roles for managing access. 
+
+3. model Database:
+Purpose: Serves as the template for creating new user databases.
+Key Features: Options set in the model database, such as collation and recovery model, are applied to all newly created databases. 
+
+4. tempdb Database:
+Purpose: A workspace for holding temporary objects, such as temporary tables, table variables, and intermediate result sets. 
+Key Features: Used for sorts, spools, and other internal engine operations. 
+Note: Is a shared resource for the entire instance and can experience resource contention. 
+
+5. resource Database:
+Purpose: A read-only database containing the system objects of SQL Server.
+Key Features: System objects are physically stored in the Resource database but logically appear in the sys schema of every database.
+Note: Helps in faster and easier SQL Server upgrades
+
+--Master 
+is used to stores Meta Data-- Data about Data
+Tables information
+path related data will related , triggers, sp, logins, Endpoint details
+
+--Model 
+is prototype/is a Template 
+if we create table by using of any one of the model same properties - default properties will apply to new DB
+
+If Master and Model DBs are down SQL server will not start
+
+--MSDB --Supervisor, All jobs will run on schedule time
+mainly it is used for automation of jobs.
+
+--Tempdb --is like a Ram
+If you want see records in a table it will take dump into TempDB to speed up query result
+
+
+--MSresourceDB - Hidden Database -- physical files are stored in bin folder
+	that is Hidden and Read only DB, that we cont see through the  SSMS.
+
+--When ever we configure replication there is Distribution DB will created
+
+Total we have 6 system DBs

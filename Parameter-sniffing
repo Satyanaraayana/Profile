@@ -3,7 +3,7 @@ It occurs when a stored procedure or query with parameters is compiled using one
 and the resulting execution plan is reused for all subsequent executions—regardless of the actual parameter values. 
 If the initial parameter values are not representative of the typical workload, the reused plan can cause poor performance.
 ________________________________________
-🔍 What Happens During Parameter Sniffing?
+🔍 What Happens During Parameter Sniffing? 
 1.	SQL Server compiles a stored procedure or parameterized query.
 2.	It "sniffs" (reads) the initial parameter values during compilation.
 3.	It creates an execution plan optimized for those values.

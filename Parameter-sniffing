@@ -1,0 +1,90 @@
+Parameter Sniffing is a common performance issue in SQL Server. 
+It occurs when a stored procedure or query with parameters is compiled using one specific set of parameter values, 
+and the resulting execution plan is reused for all subsequent executions—regardless of the actual parameter values. 
+If the initial parameter values are not representative of the typical workload, the reused plan can cause poor performance.
+
+
+What Happens During Parameter Sniffing?
+SQL Server compiles a stored procedure or parameterized query.
+
+It "sniffs" (reads) the initial parameter values during compilation.
+
+It creates an execution plan optimized for those values.
+
+The same plan is reused for future calls—even if future parameter values would perform better with a different plan.
+
+Problem Example: Parameter Sniffing
+Suppose you have this table:
+
+sql
+Copy
+Edit
+CREATE TABLE Orders (
+    OrderID INT IDENTITY,
+    CustomerID INT,
+    OrderDate DATE
+);
+CREATE INDEX IX_CustomerID ON Orders(CustomerID);
+Now, create this stored procedure:
+
+sql
+Copy
+Edit
+CREATE PROCEDURE GetOrdersByCustomer
+    @CustomerID INT
+AS
+BEGIN
+    SELECT * FROM Orders WHERE CustomerID = @CustomerID;
+END;
+Usage scenario:
+First execution: EXEC GetOrdersByCustomer @CustomerID = 1
+→ Suppose Customer 1 has 10,000 rows → SQL Server may choose a Clustered Index Scan.
+
+Second execution: EXEC GetOrdersByCustomer @CustomerID = 999
+→ Suppose Customer 999 has only 1 row → But SQL Server reuses the scan plan, which is inefficient for just one row.
+
+✅ Solutions to Mitigate Parameter Sniffing
+1. OPTION (RECOMPILE) – Recompile for every execution
+sql
+Copy
+Edit
+CREATE PROCEDURE GetOrdersByCustomer
+    @CustomerID INT
+AS
+BEGIN
+    SELECT * FROM Orders WHERE CustomerID = @CustomerID
+    OPTION (RECOMPILE);
+END;
+Forces SQL Server to generate a new plan every time using current parameter values.
+
+✅ Good for procedures with high variability.
+
+❌ More CPU usage due to frequent compilations.
+
+2. Use Local Variables – Break sniffing behavior
+sql
+Copy
+Edit
+CREATE PROCEDURE GetOrdersByCustomer
+    @CustomerID INT
+AS
+BEGIN
+    DECLARE @LocalCustomerID INT = @CustomerID;
+
+    SELECT * FROM Orders WHERE CustomerID = @LocalCustomerID;
+END;
+Local variables prevent SQL Server from sniffing the parameter.
+
+The optimizer assumes unknown value (average stats), leading to generic plans.
+
+3. Optimize for Specific Value – Guide the optimizer
+sql
+Copy
+Edit
+SELECT * FROM Orders
+WHERE CustomerID = @CustomerID
+OPTION (OPTIMIZE FOR (@CustomerID = 999));
+You can also use:
+OPTION (OPTIMIZE FOR UNKNOWN)
+to force SQL Server to use average distribution.
+

@@ -1,0 +1,53 @@
+\\BJC3MCSQL01DR\Monthlyactivity
+
+backup database MMM360DB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.bak' with differential,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304,stats=5
+backup log MMM360DB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.trn' with stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+------------------------------------------------------------------------------------------
+
+backup database MMM360DBSG to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DBSG.bak' with differential,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304,stats=5
+backup log MMM360DBSG to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DBSG.trn' with stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+------------------------------------------------------------------------------------------------
+backup database CacheDB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\CacheDB.bak' with differential,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304,stats=5
+
+backup log CacheDB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\CacheDB.trn' with stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+
+------------------------------------------------------------------------------------------
+backup database HIPAAReport_360 to disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAAReport_360.bak' with differential,stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+backup log HIPAAReport_360 to disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAAReport_360.trn' with stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+------------------------------------------------------------------------------------------
+backup database QualityMeasures360DB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityMeasures360DB.bak' with differential,stats=5
+backup log QualityMeasures360DB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityMeasures360DB.trn' with stats=5 
+--------------------------------------------------------------------
+------------------------------------------------------------------------------------------
+backup database HIPAATemp_360 to disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAATemp_360.bak' with differential,stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+backup log HIPAATemp_360 to disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAATemp_360.trn' with stats=5.BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+------------------------------------------------------------------------------------------
+backup database ConfigDB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConfigDB.bak' with differential
+backup log ConfigDB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConfigDB.trn' 
+
+----------------------------------------------------------------------
+backup database ConnectionHub to disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConnectionHub.bak' with differential
+backup log ConnectionHub to disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConnectionHub.trn' 
+
+
+---------------------------------------------------------------
+--QualityIndicators
+backup database QualityIndicators to disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityIndicators.bak' with differential
+backup log QualityIndicators to disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityIndicators.trn' 
+
+----------------------------------------------------------------------------------------------
+
+backup database [3M] to disk ='\\BJC3MCSQL01DR\Monthlyactivity\3M.bak' with differential,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304,stats=5
+backup log [3M] to disk ='\\BJC3MCSQL01DR\Monthlyactivity\3M.trn' with stats=5,BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+
+------------------------------------------------------------------------------------------
+backup database MMM360NormsDB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360NormsDB.bak' with differential,stats=5
+backup log MMM360NormsDB to disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360NormsDB.trn' with stats=5 
+------------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------
+
+
+

@@ -1,0 +1,68 @@
+
+
+
+restore database ConfigDB from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConfigDB.bak' with norecovery, stats=5
+Restore log ConfigDB from disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConfigDB.trn' with norecovery,stats=5
+
+
+-------------------------------------------------------------------------
+
+restore database ConnectionHub from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConnectionHub.bak' with norecovery,stats=5
+Restore log ConnectionHub from disk ='\\BJC3MCSQL01DR\Monthlyactivity\ConnectionHub.trn' with norecovery,stats=5
+
+--------------------------------------------------------------------------------------
+restore database QualityIndicators from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityIndicators.bak' with norecovery,stats=5
+Restore log QualityIndicators from disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityIndicators.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+
+------------------------------------------------------------
+
+restore database 3M from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\3M.bak' with norecovery,stats=5
+Restore log 3M from disk ='\\BJC3MCSQL01DR\Monthlyactivity\3M.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+
+
+restore database HIPAATemp_360 from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAATemp_360.bak' with norecovery,stats=5
+Restore log HIPAATemp_360 from disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAATemp_360.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+
+restore database MMM360NormsDB from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360NormsDB.bak' with norecovery,stats=5
+Restore log MMM360NormsDB from disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360NormsDB.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+restore database QualityMeasures360DB from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityMeasures360DB.bak' with norecovery,stats=5
+Restore log QualityMeasures360DB from disk ='\\BJC3MCSQL01DR\Monthlyactivity\QualityMeasures360DB.trn' with norecovery,stats=5
+------------------------------------------------------------
+
+
+restore database MMM360DBSG from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DBSG.bak' with norecovery,stats=5
+Restore log MMM360DBSG from disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DBSG.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+--
+restore database MMM360DB from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.bak' with norecovery,stats=5
+Restore log MMM360DB from disk ='\\BJC3MCSQL01DR\Monthlyactivity\MMM360DB.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+restore database CacheDB from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\CacheDB.bak' with norecovery,stats=5
+Restore log CacheDB from disk ='\\BJC3MCSQL01DR\Monthlyactivity\CacheDB.trn' with norecovery,stats=5
+---------------------------------------------------------------------------------------------
+
+restore database HIPAAReport_360 from  disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAAReport_360.bak' with norecovery,stats=5
+Restore log HIPAAReport_360 from disk ='\\BJC3MCSQL01DR\Monthlyactivity\HIPAAReport_360.trn' with norecovery,stats=5
+
+------------------------------------------------------------
+
+
+
+\SSISDB\SupplyChainAnalytics\ExtractSCContractData\ExtractNewVendorPaymentTerms.dtsx
+

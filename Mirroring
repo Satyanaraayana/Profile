@@ -1,0 +1,156 @@
+Break Mirroring by using query if AlwasOn High availability Group is not configured.
+
+USE [master]
+GO
+ALTER DATABASE [3M] SET PARTNER OFF;
+GO
+ALTER DATABASE CacheDB SET PARTNER OFF;
+GO
+ALTER DATABASE ConfigDB SET PARTNER OFF;
+GO
+ALTER DATABASE ConnectionHub SET PARTNER OFF;
+GO
+ALTER DATABASE HIPAAReport_360  SET PARTNER OFF;
+GO
+ALTER DATABASE HIPAATemp_360 SET PARTNER OFF;
+GO
+ALTER DATABASE MMM360DB SET PARTNER OFF;
+GO
+ALTER DATABASE MMM360DBSG SET PARTNER OFF;
+GO
+ALTER DATABASE MMM360NormsDB SET PARTNER OFF;
+GO
+ALTER DATABASE QualityIndicators SET PARTNER OFF;
+GO
+ALTER DATABASE QualityMeasures360DB SET PARTNER OFF;
+GO
+
+----------------------------------------
+
+1st i have taken the diff and log bkp on principle server BJC3MCSQL01 and trying to restore on mirroring server BJC3MCSQL01DR and getting errors.so i have taken 
+the FULL and log bkps and restored successfully.giving errors with diff because of FULL for some dbs are completed in CV.
+
+backup database 3M to disk ='\\BJC3MCSQL01DR\TempBackup2\3M.bak' with stats=5
+backup log 3M to disk ='\\BJC3MCSQL01DR\TempBackup2\3M.trn' with stats=5
+
+For MMM360DBSG and MMM360D, i have taken diff and log and restored same succeesflly because of FULL not completed for these 2dbs in CV.
+
+name			db_size
+MMM360DBSG		3024150.00 MB
+CacheDB	  		89240.00 MB
+MMM360DB	  	87374.00 MB
+HIPAAReport_360	   	8668.00 MB
+QualityMeasures360DB	3472.00 MB
+ConfigDB	   	3147.00 MB
+HIPAATemp_360	   	1500.00 MB
+ConnectionHub	   	1099.00 MB
+QualityIndicators	500.00 MB
+MMM360NormsDB	    	225.00 MB
+3M	     		16.00 MB
+
+@BJC3MCSQL01
+-------------
+backup database 3M to disk ='\\BJC3MCSQL01DR\TempBackup2\3M.bak' with differential,stats=5
+backup log 3M to disk ='\\BJC3MCSQL01DR\TempBackup2\3M.trn' with stats=5
+
+backup database MMM360NormsDB to disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360NormsDB.bak' with differential,stats=5
+backup log MMM360NormsDB to disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360NormsDB.trn' with stats=5
+
+backup database QualityIndicators to disk ='\\BJC3MCSQL01DR\TempBackup2\QualityIndicators.bak' with differential,stats=5
+backup log QualityIndicators to disk ='\\BJC3MCSQL01DR\TempBackup2\QualityIndicators.trn' with stats=5
+
+backup database ConnectionHub to disk ='\\BJC3MCSQL01DR\TempBackup2\ConnectionHub.bak' with differential,stats=5
+backup log ConnectionHub to disk ='\\BJC3MCSQL01DR\TempBackup2\ConnectionHub.trn' with stats=5
+
+backup database HIPAATemp_360 to disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAATemp_360.bak' with differential,stats=5
+backup log HIPAATemp_360 to disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAATemp_360.trn' with stats=5
+
+backup database ConfigDB to disk ='\\BJC3MCSQL01DR\TempBackup2\ConfigDB.bak' with differential,stats=5
+backup log ConfigDB to disk ='\\BJC3MCSQL01DR\TempBackup2\ConfigDB.trn' with stats=5
+
+backup database QualityMeasures360DB to disk ='\\BJC3MCSQL01DR\TempBackup2\QualityMeasures360DB.bak' with differential,stats=5
+backup log QualityMeasures360DB to disk ='\\BJC3MCSQL01DR\TempBackup2\QualityMeasures360DB.trn' with stats=5
+
+backup database HIPAAReport_360 to disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAAReport_360.bak' with differential,stats=5
+backup log HIPAAReport_360 to disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAAReport_360.trn' with stats=5
+
+backup database CacheDB to disk ='\\BJC3MCSQL01DR\TempBackup2\CacheDB.bak' with differential,stats=5
+backup log CacheDB to disk ='\\BJC3MCSQL01DR\TempBackup2\CacheDB.trn' with stats=5
+
+backup database MMM360DB to disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DB.bak' with differential,stats=5
+backup log MMM360DB to disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DB.trn' with stats=5
+
+backup database MMM360DBSG to disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.bak' with differential,stats=5,compression
+backup log MMM360DBSG to disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.trn' with stats=5 
+
+@BJC3MCSQL01DR
+---------------
+restore database 3M from  disk ='\\BJC3MCSQL01DR\TempBackup2\3M.bak' with norecovery, stats=5
+restore log 3M from disk ='\\BJC3MCSQL01DR\TempBackup2\3M.trn' with norecovery,stats=5
+
+restore database MMM360NormsDB from  disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360NormsDB.bak' with norecovery, stats=5
+restore log MMM360NormsDB from disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360NormsDB.trn' with norecovery,stats=5
+
+restore database QualityIndicators from  disk ='\\BJC3MCSQL01DR\TempBackup2\QualityIndicators.bak' with norecovery, stats=5
+restore log QualityIndicators from disk ='\\BJC3MCSQL01DR\TempBackup2\QualityIndicators.trn' with norecovery,stats=5
+
+restore database ConnectionHub from  disk ='\\BJC3MCSQL01DR\TempBackup2\ConnectionHub.bak' with norecovery, stats=5
+restore log ConnectionHub from disk ='\\BJC3MCSQL01DR\TempBackup2\ConnectionHub.trn' with norecovery,stats=5
+
+restore database HIPAATemp_360 from  disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAATemp_360.bak' with norecovery, stats=5
+restore log HIPAATemp_360 from disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAATemp_360.trn' with norecovery,stats=5
+
+restore database ConfigDB from  disk ='\\BJC3MCSQL01DR\TempBackup2\ConfigDB.bak' with norecovery, stats=5
+restore log ConfigDB from disk ='\\BJC3MCSQL01DR\TempBackup2\ConfigDB.trn' with norecovery,stats=5
+
+restore database QualityMeasures360DB from  disk ='\\BJC3MCSQL01DR\TempBackup2\QualityMeasures360DB.bak' with norecovery, stats=5
+restore log QualityMeasures360DB from disk ='\\BJC3MCSQL01DR\TempBackup2\QualityMeasures360DB.trn' with norecovery,stats=5
+
+restore database HIPAAReport_360 from  disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAAReport_360.bak' with norecovery, stats=5
+restore log HIPAAReport_360 from disk ='\\BJC3MCSQL01DR\TempBackup2\HIPAAReport_360.trn' with norecovery,stats=5
+
+restore database CacheDB from  disk ='\\BJC3MCSQL01DR\TempBackup2\CacheDB.bak' with norecovery, stats=5
+restore log CacheDB from disk ='\\BJC3MCSQL01DR\TempBackup2\CacheDB.trn' with norecovery,stats=5
+
+restore database MMM360DB from  disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DB.bak' with norecovery, stats=5
+restore log MMM360DB from disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DB.trn' with norecovery,stats=5
+
+restore database MMM360DBSG from  disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.bak' with norecovery, stats=5
+restore log MMM360DBSG from disk ='\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.trn' with norecovery,stats=5
+
+-------------------------------------------------------------------------
+
+If differential not work take full backup 
+
+BACKUP database [MMM360DBSG] 
+TO  DISK = N'\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.bak' WITH NOFORMAT, INIT,  NAME = N'MMM360DBSG Backup', 
+SKIP, NOREWIND,NOUNLOAD,  STATS = 10, BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+GO
+
+
+BACKUP LOG [MMM360DBSG] TO  DISK = N'\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.trn' 
+WITH NOFORMAT, INIT,  NAME = N'MMM360DBSG-Log Backup', 
+SKIP, NOREWIND, NOUNLOAD,  STATS = 10, BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304
+GO
+
+
+Restore full and log backup
+----------------------------
+RESTORE DATABASE [MMM360DBSG] FROM  DISK = N'\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.bak'
+WITH  FILE = 1,  NORECOVERY,  NOUNLOAD,  STATS = 5
+
+
+
+GO
+
+USE [master]
+RESTORE LOG [MMM360DBSG] FROM  DISK = N'\\BJC3MCSQL01DR\TempBackup2\MMM360DBSG.trn' 
+WITH  FILE = 1, NORECOVERY,  NOUNLOAD,  STATS = 10
+GO
+--------------------------------------------------------------------------------------------------------------------
+
+setup mirroring in below are 2014 server
+
+BJCPSSQL01DR
+
+

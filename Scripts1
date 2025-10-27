@@ -1,0 +1,547 @@
+To fix the orphan users
+We need to run this below script against the restored database.
+
+DECLARE @user varchar(30), @rowcount integer,@count integer, @uid integer
+SELECT @count = COUNT(*) from sysusers where issqluser =1
+SET @rowcount = 1
+SELECT @user = name, @uid = uid FROM sysusers where issqluser =1 ORDER BY uid ASC
+WHILE @rowcount < @count
+BEGIN
+               IF @user NOT IN('guest','dbo','sys','INFORMATION_SCHEMA')  
+               BEGIN
+                              EXEC sp_change_users_login 'AUTO_FIX',@user
+               END
+               --print 'NOW FIXING ' + @user
+               SELECT @user = name, @uid = uid FROM sysusers
+               WHERE uid < @uid and issqluser =1
+               ORDER BY uid ASC
+               SET @rowcount = @rowcount + 1
+
+END
+--------------------------------------------------------------------------
+Use below script to Auto_fix the login's against the restored database.
+
+BEGIN
+DECLARE @username varchar(25)
+DECLARE fixusers CURSOR
+FOR
+SELECT UserName = name FROM sysusers
+WHERE issqluser = 1 and (sid is not null and sid <> 0x0)
+and suser_sname(sid) is null
+ORDER BY name
+OPEN fixusers
+FETCH NEXT FROM fixusers
+INTO @username
+WHILE @@FETCH_STATUS = 0
+BEGIN
+EXEC sp_change_users_login 'Auto_Fix', @username
+FETCH NEXT FROM fixusers
+INTO @username
+END
+CLOSE fixusers
+DEALLOCATE fixusers
+end
+
+-------------------------------------------------------------------------------
+To Get the orphan users report, from destinaton exec sp_change_users_login 'report'
+To get the logins script on the source server, After running below script, take the orphan user from output(do not execute entire output on the destination)
+
+USE master
+GO
+IF OBJECT_ID ('sp_hexadecimal') IS NOT NULL
+  DROP PROCEDURE sp_hexadecimal
+GO
+CREATE PROCEDURE sp_hexadecimal
+    @binvalue varbinary(256),
+    @hexvalue varchar (514) OUTPUT
+AS
+DECLARE @charvalue varchar (514)
+DECLARE @i int
+DECLARE @length int
+DECLARE @hexstring char(16)
+SELECT @charvalue = '0x'
+SELECT @i = 1
+SELECT @length = DATALENGTH (@binvalue)
+SELECT @hexstring = '0123456789ABCDEF'
+WHILE (@i <= @length)
+BEGIN
+  DECLARE @tempint int
+  DECLARE @firstint int
+  DECLARE @secondint int
+  SELECT @tempint = CONVERT(int, SUBSTRING(@binvalue,@i,1))
+  SELECT @firstint = FLOOR(@tempint/16)
+  SELECT @secondint = @tempint - (@firstint*16)
+  SELECT @charvalue = @charvalue +
+    SUBSTRING(@hexstring, @firstint+1, 1) +
+    SUBSTRING(@hexstring, @secondint+1, 1)
+  SELECT @i = @i + 1
+END
+
+SELECT @hexvalue = @charvalue
+GO
+ 
+IF OBJECT_ID ('sp_help_revlogin') IS NOT NULL
+  DROP PROCEDURE sp_help_revlogin
+GO
+CREATE PROCEDURE sp_help_revlogin @login_name sysname = NULL AS
+DECLARE @name sysname
+DECLARE @type varchar (1)
+DECLARE @hasaccess int
+DECLARE @denylogin int
+DECLARE @is_disabled int
+DECLARE @PWD_varbinary  varbinary (256)
+DECLARE @PWD_string  varchar (514)
+DECLARE @SID_varbinary varbinary (85)
+DECLARE @SID_string varchar (514)
+DECLARE @tmpstr  varchar (1024)
+DECLARE @is_policy_checked varchar (3)
+DECLARE @is_expiration_checked varchar (3)
+
+DECLARE @defaultdb sysname
+ 
+IF (@login_name IS NULL)
+  DECLARE login_curs CURSOR FOR
+
+      SELECT p.sid, p.name, p.type, p.is_disabled, p.default_database_name, l.hasaccess, l.denylogin FROM 
+sys.server_principals p LEFT JOIN sys.syslogins l
+      ON ( l.name = p.name ) WHERE p.type IN ( 'S', 'G', 'U' ) AND p.name <> 'sa'
+ELSE
+  DECLARE login_curs CURSOR FOR
+
+
+      SELECT p.sid, p.name, p.type, p.is_disabled, p.default_database_name, l.hasaccess, l.denylogin FROM 
+sys.server_principals p LEFT JOIN sys.syslogins l
+      ON ( l.name = p.name ) WHERE p.type IN ( 'S', 'G', 'U' ) AND p.name = @login_name
+OPEN login_curs
+
+FETCH NEXT FROM login_curs INTO @SID_varbinary, @name, @type, @is_disabled, @defaultdb, @hasaccess, @denylogin
+IF (@@fetch_status = -1)
+BEGIN
+  PRINT 'No login(s) found.'
+  CLOSE login_curs
+  DEALLOCATE login_curs
+  RETURN -1
+END
+SET @tmpstr = '/* sp_help_revlogin script '
+PRINT @tmpstr
+SET @tmpstr = '** Generated ' + CONVERT (varchar, GETDATE()) + ' on ' + @@SERVERNAME + ' */'
+PRINT @tmpstr
+PRINT ''
+WHILE (@@fetch_status <> -1)
+BEGIN
+  IF (@@fetch_status <> -2)
+  BEGIN
+    PRINT ''
+    SET @tmpstr = '-- Login: ' + @name
+    PRINT @tmpstr
+    IF (@type IN ( 'G', 'U'))
+    BEGIN -- NT authenticated account/group
+
+      SET @tmpstr = 'CREATE LOGIN ' + QUOTENAME( @name ) + ' FROM WINDOWS WITH DEFAULT_DATABASE = [' + @defaultdb + ']'
+    END
+    ELSE BEGIN -- SQL Server authentication
+        -- obtain password and sid
+            SET @PWD_varbinary = CAST( LOGINPROPERTY( @name, 'PasswordHash' ) AS varbinary (256) )
+        EXEC sp_hexadecimal @PWD_varbinary, @PWD_string OUT
+        EXEC sp_hexadecimal @SID_varbinary,@SID_string OUT
+ 
+        -- obtain password policy state
+        SELECT @is_policy_checked = CASE is_policy_checked WHEN 1 THEN 'ON' WHEN 0 THEN 'OFF' ELSE NULL END FROM sys.sql_logins WHERE name = @name
+        SELECT @is_expiration_checked = CASE is_expiration_checked WHEN 1 THEN 'ON' WHEN 0 THEN 'OFF' ELSE NULL END FROM sys.sql_logins WHERE name = @name
+ 
+            SET @tmpstr = 'CREATE LOGIN ' + QUOTENAME( @name ) + ' WITH PASSWORD = ' + @PWD_string + ' HASHED, SID = ' + @SID_string + ', DEFAULT_DATABASE = [' + @defaultdb + ']'
+
+        IF ( @is_policy_checked IS NOT NULL )
+        BEGIN
+          SET @tmpstr = @tmpstr + ', CHECK_POLICY = ' + @is_policy_checked
+        END
+        IF ( @is_expiration_checked IS NOT NULL )
+        BEGIN
+          SET @tmpstr = @tmpstr + ', CHECK_EXPIRATION = ' + @is_expiration_checked
+        END
+    END
+    IF (@denylogin = 1)
+    BEGIN -- login is denied access
+      SET @tmpstr = @tmpstr + '; DENY CONNECT SQL TO ' + QUOTENAME( @name )
+    END
+    ELSE IF (@hasaccess = 0)
+    BEGIN -- login exists but does not have access
+      SET @tmpstr = @tmpstr + '; REVOKE CONNECT SQL TO ' + QUOTENAME( @name )
+    END
+    IF (@is_disabled = 1)
+    BEGIN -- login is disabled
+      SET @tmpstr = @tmpstr + '; ALTER LOGIN ' + QUOTENAME( @name ) + ' DISABLE'
+    END
+    PRINT @tmpstr
+  END
+
+  FETCH NEXT FROM login_curs INTO @SID_varbinary, @name, @type, @is_disabled, @defaultdb, @hasaccess, @denylogin
+   END
+CLOSE login_curs
+DEALLOCATE login_curs
+RETURN 0
+GO
+
+
+--run this last
+EXEC sp_help_revlogin
+
+ 
+---------------------------------------------------------------------------------------
+
+To get the version details of the server.
+
+SELECT @@version, SERVERPROPERTY('productversion'), SERVERPROPERTY ('productlevel'), SERVERPROPERTY ('edition')
+
+----------------------------------------------------------------------------------------------------------------
+
+To Find current locks and blocks in the server
+
+SET NOCOUNT ON
+GO
+ 
+-- Count the locks
+ 
+IF EXISTS ( SELECT  Name
+            FROM    tempdb..sysobjects
+            WHERE   name LIKE '#Hold_sp_lock%' )
+--If So Drop it
+    DROP TABLE #Hold_sp_lock
+GO
+CREATE TABLE #Hold_sp_lock
+    (
+      spid INT,
+      dbid INT,
+      ObjId INT,
+      IndId SMALLINT,
+      Type VARCHAR(20),
+      Resource VARCHAR(50),
+      Mode VARCHAR(20),
+      Status VARCHAR(20)
+    )
+INSERT  INTO #Hold_sp_lock
+        EXEC sp_lock
+SELECT  COUNT(spid) AS lock_count,
+        SPID,
+        Type,
+        Cast(DB_NAME(DBID) as varchar(30)) as DBName,
+        mode
+FROM    #Hold_sp_lock
+GROUP BY SPID,
+        Type,
+        DB_NAME(DBID),
+        MODE
+Order by lock_count desc,
+        DBName,
+        SPID,
+        MODE
+ 
+--Show any blocked or blocking processes
+ 
+IF EXISTS ( SELECT  Name
+            FROM    tempdb..sysobjects
+            Where   name like '#Catch_SPID%' )
+--If So Drop it
+    DROP TABLE #Catch_SPID
+GO
+Create Table #Catch_SPID
+    (
+      bSPID int,
+      BLK_Status char(10)
+    )
+GO
+Insert  into #Catch_SPID
+        Select Distinct
+                SPID,
+                'BLOCKED'
+        from    master..sysprocesses
+        where   blocked <> 0
+        UNION
+        Select Distinct
+                blocked,
+                'BLOCKING'
+        from    master..sysprocesses
+        where   blocked <> 0
+ 
+DECLARE @tSPID int 
+DECLARE @blkst char(10)
+SELECT TOP 1
+        @tSPID = bSPID,
+        @blkst = BLK_Status
+from    #Catch_SPID
+ 
+WHILE( @@ROWCOUNT > 0 )
+    BEGIN
+ 
+        PRINT 'DBCC Results for SPID ' + Cast(@tSPID as varchar(5)) + '( '
+            + rtrim(@blkst) + ' )'
+        PRINT '-----------------------------------'
+        PRINT ''
+        DBCC INPUTBUFFER(@tSPID)
+ 
+ 
+        SELECT TOP 1
+                @tSPID = bSPID,
+                @blkst = BLK_Status
+        from    #Catch_SPID
+        WHERE   bSPID > @tSPID
+        Order by bSPID
+ 
+    END
+
+-------------------------------------------------------------------------------------------------------------
+
+Size and file names to find DBID
+
+SELECT Distinct DB.name As DatabaseName,
+DB.recovery_model,
+mf.name as logical_name,
+mf.physical_name,
+(size*8)/1024/1024 SizeGB
+FROM sys.master_files mf
+join sys.databases DB
+on mf.database_id = DB.database_id
+WHERE mf.database_id > 4 order by SizeGB desc
+
+-------------------------------------------------------------------------------------------
+To get table sizes in sql server
+
+select schema_name(tab.schema_id) + '.' + tab.name as [table], 
+    cast(sum(spc.used_pages * 8)/1024.00 as numeric(36, 2)) as used_mb,
+    cast(sum(spc.total_pages * 8)/1024.00 as numeric(36, 2)) as allocated_mb
+from sys.tables tab
+    inner join sys.indexes ind 
+        on tab.object_id = ind.object_id
+    inner join sys.partitions part 
+        on ind.object_id = part.object_id and ind.index_id = part.index_id
+    inner join sys.allocation_units spc
+        on part.partition_id = spc.container_id
+group by schema_name(tab.schema_id) + '.' + tab.name
+order by sum(spc.used_pages) desc
+
+---------------------------------------------------------------------------------
+Split backup script
+
+BACKUP DATABASE [WFCPROD] TO  
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_1.bak',  
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_2.bak',
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_3.bak',  
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_4.bak',
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_5.bak',  
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_6.bak',
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_7.bak',  
+DISK = N'\\BJCWFSQL01T\Backup\WFCPROD_8.bak'
+WITH NOFORMAT, INIT, BUFFERCOUNT = 400,  MAXTRANSFERSIZE = 4194304, NAME = N'WFCPROD', 
+SKIP, REWIND, NOUNLOAD, COMPRESSION,  STATS = 10
+
+---------------------------------------------------------------------------
+
+Use below script to delete server name from CentralManagement while decommision 
+
+SELECT [dba]
+      ,[server]
+  FROM [CentralManagement].[dbo].[DBA_SERVER]
+  where server = 'bjcwtsbbdb01'
+
+  delete FROM [CentralManagement].[dbo].[DBA_SERVER]
+  where server = 'bjcwtsbbdb01'
+
+---------------------------------------------------------------------------------
+To Check the duration of the Index optimize job.
+
+SELECT DatabaseName,
+       SchemaName,
+       ObjectName,
+       CASE WHEN ObjectType = 'U' THEN 'USER_TABLE' WHEN ObjectType = 'V' THEN 'VIEW' END AS ObjectType,
+       IndexName,
+       CASE WHEN IndexType = 1 THEN 'CLUSTERED' WHEN IndexType = 2 THEN 'NONCLUSTERED' WHEN IndexType = 3 THEN 'XML' WHEN IndexType = 4 THEN 'SPATIAL' END AS IndexType,
+       PartitionNumber,
+       ExtendedInfo.value('(ExtendedInfo/PageCount)[1]','int') AS [PageCount],
+       ExtendedInfo.value('(ExtendedInfo/Fragmentation)[1]','float') AS Fragmentation,
+       CommandType,
+       Command,
+       StartTime,
+       EndTime,
+       CASE WHEN DATEDIFF(ss,StartTime, EndTime)/(24*3600) > 0 THEN CAST(DATEDIFF(ss,StartTime, EndTime)/(24*3600) AS nvarchar) + '.' ELSE '' END + RIGHT(CONVERT(nvarchar,EndTime - StartTime,121),12) AS Duration,
+       ErrorNumber,
+       ErrorMessage
+FROM dbo.CommandLog
+WHERE CommandType = 'ALTER_INDEX'
+--WHERE CommandType not in ('ALTER_INDEX')---it will give update statistics info
+ORDER BY StartTime ASC
+-------------------------------------------------------------------------------------------
+Move user database log file from one location to other location
+
+
+Use master
+go
+alter database CFUpdateService set Offline
+
+Move the physical log file from D to E then execute below 
+
+go
+
+ALTER DATABASE CFUpdateService   
+    MODIFY FILE ( NAME = CFUpdateService_log,   
+                  FILENAME = 'E:\MSSQL13.MSSQLSERVER\MSSQL\Data\CFUpdateService_log.ldf');  
+
+go
+
+Use master
+go
+alter database CFUpdateService set online
+
+-------------------------------------------------------------------------------------
+To find lead blocker use below script
+
+SET NOCOUNT ON
+GO
+SELECT SPID, BLOCKED, REPLACE (REPLACE (T.TEXT, CHAR(10), ' '), CHAR (13), ' ' ) AS BATCH
+INTO #T
+FROM sys.sysprocesses R CROSS APPLY sys.dm_exec_sql_text(R.SQL_HANDLE) T
+GO
+WITH BLOCKERS (SPID, BLOCKED, LEVEL, BATCH)
+AS
+(
+SELECT SPID,
+BLOCKED,
+CAST (REPLICATE ('0', 4-LEN (CAST (SPID AS VARCHAR))) + CAST (SPID AS VARCHAR) AS VARCHAR (1000)) AS LEVEL,
+BATCH FROM #T R
+WHERE (BLOCKED = 0 OR BLOCKED = SPID)
+AND EXISTS (SELECT * FROM #T R2 WHERE R2.BLOCKED = R.SPID AND R2.BLOCKED <> R2.SPID)
+UNION ALL
+SELECT R.SPID,
+R.BLOCKED,
+CAST (BLOCKERS.LEVEL + RIGHT (CAST ((1000 + R.SPID) AS VARCHAR (100)), 4) AS VARCHAR (1000)) AS LEVEL,
+R.BATCH FROM #T AS R
+INNER JOIN BLOCKERS ON R.BLOCKED = BLOCKERS.SPID WHERE R.BLOCKED > 0 AND R.BLOCKED <> R.SPID
+)
+SELECT N'    ' + REPLICATE (N'|         ', LEN (LEVEL)/4 - 1) +
+CASE WHEN (LEN(LEVEL)/4 - 1) = 0
+THEN 'HEAD -  '
+ELSE '|------  ' END
++ CAST (SPID AS NVARCHAR (10)) + N' ' + BATCH AS BLOCKING_TREE
+FROM BLOCKERS ORDER BY LEVEL ASC
+GO
+DROP TABLE #T
+GO
+-------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+
+To check the backup and restore percentge 
+
+  
+SELECT session_id as SPID, command, a.text AS Query, start_time, percent_complete, dateadd(second,estimated_completion_time/1000, getdate()) as estimated_completion_time
+FROM sys.dm_exec_requests r CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) a
+WHERE r.command in ('BACKUP DATABASE','RESTORE DATABASE')
+
+
+
+---------------------------------------------------------------------------
+
+To take manual full and log backup with OLA script in shared location
+
+EXECUTE [dbo].[DatabaseBackup] @Databases = 'ConnectionHub,DefHDMDB,HDMDB,HIPAAReport_360,HIPAATemp_360', @Directory = N'\\bjcp3msql01dr\M$\TempBackup', @BackupType = 'FULL', @Verify = 'N', @Compress = 'Y', @CleanupTime = '200', @CheckSum = 'Y', @LogToTable = 'Y'
+go
+
+EXECUTE [dbo].[DatabaseBackup] @Databases = 'ConnectionHub,DefHDMDB,HDMDB,HIPAAReport_360,HIPAATemp_360', @Directory = N'\\bjcp3msql01dr\M$\TempBackup', @BackupType = 'LOG', @Verify = 'N', @Compress = 'Y', @CleanupTime = '200', @CheckSum = 'Y', @LogToTable = 'Y'
+
+-----------------------------------------------------------------------------------------------------
+Ola scripts Location 
+
+\\bjcdba02\DBA\SQL Server\Ola_Maint_Solution
+
+-----------------------------------------------------------------------------------------------------------------
+To find Full backup duration for one database.
+
+SELECT distinct bs.database_name AS DatabaseName
+
+, CAST(bs.backup_size/1024.0/1024/1024 AS DECIMAL(10, 2)) AS BackupSizeGB
+
+, CAST(bs.backup_size/1024.0/1024 AS DECIMAL(10, 2)) AS BackupSizeMB
+
+, bs.backup_start_date AS BackupStartDate
+
+, bs.backup_finish_date AS BackupEndDate
+
+, CAST(bs.backup_finish_date-bs.backup_start_date AS TIME) AS AmtTimeToBkup
+
+--, bmf.physical_device_name AS BackupDeviceName
+
+FROM msdb.dbo.backupset bs JOIN msdb.dbo.backupmediafamily bmf
+
+ON bs.media_set_id = bmf.media_set_id
+
+WHERE
+
+bs.database_name = 'WFCPROD' and   
+
+bs.backup_start_date > DATEADD(dd, -15, GETDATE()) and
+
+bs.type = 'D'
+
+ORDER BY bs.database_name, bs.backup_start_date desc
+
+
+-------------------------------------------------------------------------------------
+Fragmentation percentage
+
+SELECT OBJECT_NAME(ips.OBJECT_ID)
+
+,i.NAME
+
+,ips.index_id
+
+,index_type_desc
+
+,avg_fragmentation_in_percent
+
+,avg_page_space_used_in_percent
+
+,page_count
+
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, NULL) ips
+
+INNER JOIN sys.indexes i ON (ips.object_id = i.object_id)
+
+AND (ips.index_id = i.index_id)
+
+ORDER BY avg_fragmentation_in_percent DESC
+
+------------------------------------------------------------------------------------------
+USE [master]
+RESTORE DATABASE [comm4] FROM  DISK = N'E:\Backup\comm4_1_Full_Mon_Jul_20_23_19_08_2020.bak',  
+DISK = N'E:\Backup\comm4_2_Full_Mon_Jul_20_23_19_08_2020.bak' WITH  FILE = 1,  
+MOVE N'comm4' TO N'E:\MSSQL11.MSSQLSERVER\MSSQL\DATA\comm4.mdf',  
+MOVE N'comm4_Log' TO N'E:\MSSQL11.MSSQLSERVER\MSSQL\DATA\comm4_Log.ldf',  
+MOVE N'Comm4_Files' TO N'E:\MSSQL11.MSSQLSERVER\MSSQL\DATA\Comm4_filestream',  NOUNLOAD,  STATS = 5
+
+GO
+
+
+--------------------------------------------------------------------------------------
+
+USE [master]
+RESTORE DATABASE [PwHcProd01] FROM  DISK = N'E:\PwHcProd01_1_Full_Fri_Sep_18_20_12_03_2020.bak',  
+DISK = N'E:\PwHcProd01_2_Full_Fri_Sep_18_20_12_03_2020.bak' WITH  FILE = 1, 
+ MOVE N'PwHcMaster_Data' TO N'E:\MSSQL11.MSSQLSERVER\MSSQL\DATA\PwHcProd01.mdf', 
+  MOVE N'PwHcMaster_Log' TO N'E:\MSSQL11.MSSQLSERVER\MSSQL\DATA\PwHcProd01_log.ldf',  NORECOVERY,  NOUNLOAD,  STATS = 5
+RESTORE LOG [PwHcProd01] FROM  DISK = N'E:\PwHcProd01_1_Log_Fri_Sep_18_20_13_37_2020.bak', 
+ DISK = N'E:\PwHcProd01_2_Log_Fri_Sep_18_20_13_37_2020.bak' WITH  FILE = 1,  NOUNLOAD,  STATS = 5
+
+GO
+
+-------------------------------------------------------------------------------------------------------------
+Fragmentation
+
+SELECT OBJECT_NAME(ips.OBJECT_ID)
+,i.NAME
+,ips.index_id
+,index_type_desc
+,avg_fragmentation_in_percent
+,avg_page_space_used_in_percent
+,page_count
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, NULL) ips
+INNER JOIN sys.indexes i ON (ips.object_id = i.object_id)
+AND (ips.index_id = i.index_id)
+ORDER BY avg_fragmentation_in_percent DESC

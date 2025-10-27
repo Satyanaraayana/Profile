@@ -1,0 +1,137 @@
+**Performance Tuning
+
+DBCC DROPCLEANBUFFERS WITH NO_INFOMSGS
+--------------------------------------------------
+DBCC IND('PERFORMANCE_TUNING','Table Name',-1) // this command will gives how many pages we have in the Tabble. Info about PageID, page Type, Index Level
+--Create Table
+Create Table CRICKETPLAYERS(Name (500),Team(500))
+--Insert values into Table
+Insert into CRICKETPLAYERS values('Virat','India')
+--Select Data from Table
+Select *from CRICKETPLAYERS
+--this command will gives how many pages we have in the Tabble..
+DBCC IND('PERFORMANCE_TUNING','Table Name',-1) // Info about PageID, page Type, Index Level, Page 10 for IMA file and Page 1 for Data File.
+--Insert values into Table
+Insert into CRICKETPLAYERS values('Rohit','India')
+Insert into CRICKETPLAYERS values('Dhoni','India')
+Insert into CRICKETPLAYERS values('Bhumhra','India')
+Insert into CRICKETPLAYERS values('Pandya','India')
+Insert into CRICKETPLAYERS values('Sachin','India')
+Insert into CRICKETPLAYERS values('Sehwag','India')
+Insert into CRICKETPLAYERS values('Shivam','India')
+Insert into CRICKETPLAYERS values('Gale','WestInd')
+Insert into CRICKETPLAYERS values('Root','ENG')
+Insert into CRICKETPLAYERS values('MecCulumn','NWZ')
+Insert into CRICKETPLAYERS values('Mark','AUS')
+
+--this command will gives how many pages we have in the Tabble..
+DBCC IND('PERFORMANCE_TUNING','Table Name',-1) // Info about PageID, page Type, Index Level
+
+DBCC TRACEON(3604)
+DBCC PAGE('PERFORMANCE_TUNING',/page Number or ID/,1)
+--------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
+SET STATISTICS Time ON and SET STATISTICS IO ON
+
+**SET STATISTICS Time ON --> It is used to identify the Parse, Compilation and execution time of the Query on Server side, Note: it does'nt include the time to transfer data into client.
+	SET STATISTICS Time ON
+	Select *from [Person].[Address]
+		'--msg: 
+		SQL Server Parse and Compile time:
+		CPU time:0 ms, Elapsed time: 2 ms
+		
+		(19614 Rows effected)
+		
+		SQL Server Execution time:
+		CPU time:234 ms, Elapsed time: 996 ms--'
+		
+	SET STATISTICS Time OFF
+	
+
+**SET STATISTICS IO ON --> It includes bellow aspects
+	1. Cost of th eQuery
+	2. Actual number of physical reads from the Disk
+	3. Actual number of Logical reads 
+	4. Scans and etc.
+	
+	SET STATISTICS IO ON
+	Select *from [Person].[Address]
+		'--msg:
+		(19614 Rows effected)
+		Table 'Address'. Scan count 1,
+		
+		Logical reads 361, Physical reads 0, Read-Adhea Reads 0, Lob logical Reads 0, Lob Physical Reads 0, Lob Read-Ahead Reads 0.'
+		SET STATISTICS IO OFF
+-----------------------------------------------------------------
+---------------------------------------------------------------------
+Scan And Reads (Logical and Physical)
+
+**Scans Count: Its no of Seeks/Scans started from the root noode to reach leaf node in any direction to retrive the DATA.
+	Note: Scan cpount=0, If idex is used a unique Index or clusterd Index on Primary Key.
+	
+	SET STATISTICS IO ON
+		SELECT * FROM [Person].[Person] --Scancount=1
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID=1 --Scan count=0
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID>1 and BUSINESSENTITYID<5 --Scan count=1
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID>=1 and BUSINESSENTITYID<=5 --Scan count=1
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID> in (1,2,3,4) --Scan count=4
+	SET STATISTICS IO OFF	
+	
+**Logical Reads: No of Pages read from the Data Cache --refers the how many pages we need to retrive the Data from the Table.
+	SET STATISTICS IO ON
+		SELECT * FROM [Person].[Person] --Logical Reads 3817
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID=1 --Logical Reads 3
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID>1 and BUSINESSENTITYID<5 --Logical Reads 3
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID>=1 and BUSINESSENTITYID<=5 --Logical Reads 3
+		SELECT * FROM [Person].[Person] where BUSINESSENTITYID> in (1,2,3,4) --Logical Reads 12
+		SELECT * FROM [Person].[Person] Order by BUSINESSENTITYID --Logical Reads 3817
+	SET STATISTICS IO OFF	
+	
+	SET STATISTICS IO ON
+	SELECT * FROM [Person].[Person] where FirstName='Ken'  --Logical Reads 136, It is large Because it is not a Primary Key column.
+	SET STATISTICS IO OFF
+	
+**Physical Reads: Refers No of pages reads from the Disk. It shows how many pages are requested by the query processor from the Storage Engine and Storage engine retrive it from the Secondary Storage(HDD) and put into Primary Storage (Cache)
+
+	DBCC DROPCLEANBUFFERS WITH NO_INFOMSGS
+	SET STATISTICS IO ON
+	SET STATISTICS Time ON
+	DBCC TRACEON(652) - --Use this if you dont want use 'Read Ahead Reads' mechanisum, data will not read from Cache directly read from Disk and elapse time will take more.
+	SELECT * FROM [Person].[Person]
+	DBCC TRACEON(652)
+	SET STATISTICS Time OFF
+	SET STATISTICS IO OFF
+		msg: Logical reads 3817, Physical reads 491, read ahead reads 0
+		SQL Server Execution time: 
+		CPU Time 140 ms, elapsed time =2614.
+	
+
+**Read Ahead Reads : When Data is not in buffer cache so all records will be physical reads, requesting row by row data from disk is very expensive so here new mechanisum called as Read ahead Reads. It anticipates bunch of rows that might be requested by the query so it places pages in to buffer even before requested by the query.
+	DBCC DROPCLEANBUFFERS WITH NO_INFOMSGS
+	SET STATISTICS IO ON
+	SET STATISTICS Time ON
+	SELECT * FROM [Person].[Person]
+	SET STATISTICS Time OFF
+	SET STATISTICS IO OFF
+		msg: Logical reads 3838, Physical reads 3, read ahead reads 3934
+		SQL Server Execution time: 
+		CPU Time 109 ms, elapsed time =1849.
+	
+Note: Compare both msg for Physical reads and Read Ahead Reads
+
+**Lob reads : If we are reading Data from any Large Objects (Text, NText, Image, Varchar(max),NVarchar(max), and Varbinary(max)) Then LOB will come into the picture.
+**Lob Logical Reads: Reads no of Large Objects pages from buffer pool
+**Lob Physical Reads:Reads no of Large Objects pages from Disk
+**Lob Read-Ahead Reads: No of Large Object pages pages read from disk as per read ahead mechanisum.
+	
+	CREATE TABLE LOB_READS
+		(ID INT IDENTITY(1,1) NOT NULL PRIMARY KEY
+		NAME VARCHAR(50),
+		LFIELD TEXT) GO
+	INSERT INTO LOB_READS VALUES('JOHN', REPLICATE ('X',900) GO 100
+	INSERT INTO LOB_READS VALUES('JOHHNY', REPLICATE ('Y',900) GO 100
+	
+	DBCC DROPCLEANBUFFERS
+	SET STATISTICS IO ON
+	SELECT * FROM LOB_READS
+	SET STATISTICS IO OFF

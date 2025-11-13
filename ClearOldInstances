@@ -1,0 +1,19 @@
+Clear old instances if exists
+like MSSQLSERVER1, MSSQLSERVER2,MSSQLSERVER3,...
+EditRegestery: regedit
+
+Press Windows + R → type regedit
+
+Navigate and delete these keys (if exist):
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SQL Server
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSSQLServer
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SQL Server*
+
+
+Also check:
+
+HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL
+
+
+Remove all unwanted instance names listed there.

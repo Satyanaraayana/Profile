@@ -1,0 +1,158 @@
+SQL SERVER DAILY HEALTH CHECK SCRIPT (Full Set)
+
+✅ 1. Check SQL Server Instance Info
+✅ 2. Check Database Status (Offline, Suspect, Read-Only)
+✅ 3. Check Database Size & Free Space
+✅ 4. Check SQL Server Memory Usage
+✅ 5. Check CPU Usage by SQL Queries
+✅ 6. Check Disk Latency
+✅ 7. Check Blocking Sessions
+✅ 8. Check SQL Agent Jobs Status
+✅ 9. Check Last Full/Log Backup
+✅ 10. Check Disk Space (OS Level – xp_cmdshell optional)
+✅ 11. Check TempDB Usage
+✅ 12. Check Error Log for Recent Errors
+✅ 13. Check High Wait Types
+✅ 14. Check Fragmented Indexes
+
+Copy–paste and run entire script in SSMS
+
+✅ 1. Check SQL Server Instance Info
+SELECT 
+    @@SERVERNAME AS ServerName,
+    SERVERPROPERTY('ProductVersion') AS Version,
+    SERVERPROPERTY('Edition') AS Edition,
+    SERVERPROPERTY('ProductLevel') AS SP_Level,
+    sqlserver_start_time = (SELECT sqlserver_start_time FROM sys.dm_os_sys_info);
+
+✅ 2. Check Database Status (Offline, Suspect, Read-Only)
+SELECT 
+    name AS DatabaseName,
+    state_desc,
+    recovery_model_desc,
+    is_read_only
+FROM sys.databases
+ORDER BY name;
+
+✅ 3. Check Database Size & Free Space
+SELECT 
+    DB_NAME(database_id) AS DBName,
+    name AS FileName,
+    type_desc,
+    (size * 8)/1024 AS SizeMB,
+    ((size - FILEPROPERTY(name, 'SpaceUsed')) * 8)/1024 AS FreeMB
+FROM sys.master_files
+ORDER BY DBName;
+
+✅ 4. Check SQL Server Memory Usage
+SELECT 
+    physical_memory_in_use_kb/1024 AS MemoryUsedMB,
+    large_page_allocations_kb/1024 AS LargePageMB,
+    locked_page_allocations_kb/1024 AS LockedPageMB,
+    total_virtual_address_space_kb/1024 AS VAS_MB
+FROM sys.dm_os_process_memory;
+
+✅ 5. Check CPU Usage by SQL Queries
+SELECT TOP 10
+    total_worker_time/1000 AS CPU_ms,
+    execution_count,
+    total_worker_time/execution_count AS AvgCPU,
+    DB_NAME(qp.dbid) AS DBName,
+    SUBSTRING(qt.text, qs.statement_start_offset/2,
+              (CASE WHEN qs.statement_end_offset = -1 THEN LEN(qt.text) * 2
+                    ELSE qs.statement_end_offset END - qs.statement_start_offset)/2) AS QueryText
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) qt
+CROSS APPLY sys.dm_exec_plan_attributes(qs.plan_handle) qp
+ORDER BY CPU_ms DESC;
+
+✅ 6. Check Disk Latency
+SELECT 
+    DB_NAME(vfs.database_id) AS DBName,
+    file_id,
+    io_stall_read_ms / NULLIF(num_of_reads, 0) AS ReadLatency_ms,
+    io_stall_write_ms / NULLIF(num_of_writes, 0) AS WriteLatency_ms,
+    io_stall_write_ms AS TotalWriteStall,
+    io_stall_read_ms AS TotalReadStall
+FROM sys.dm_io_virtual_file_stats(NULL, NULL)
+ORDER BY ReadLatency_ms DESC;
+
+✅ 7. Check Blocking Sessions
+SELECT 
+    wt.blocking_session_id AS Blocker,
+    wt.session_id AS Blocked,
+    wt.wait_type,
+    wt.wait_duration_ms,
+    SUBSTRING(txt.text, req.statement_start_offset/2,
+             (CASE WHEN req.statement_end_offset = -1 THEN LEN(txt.text) * 2
+                   ELSE req.statement_end_offset END - req.statement_start_offset)/2) AS BlockedQuery
+FROM sys.dm_os_waiting_tasks wt
+JOIN sys.dm_exec_requests req ON wt.session_id = req.session_id
+CROSS APPLY sys.dm_exec_sql_text(req.sql_handle) txt
+WHERE wt.blocking_session_id IS NOT NULL;
+
+✅ 8. Check SQL Agent Jobs Status
+SELECT 
+    name AS JobName,
+    enabled,
+    SJH.run_status,
+    SJH.run_date,
+    SJH.run_time
+FROM msdb.dbo.sysjobs SJ
+LEFT JOIN msdb.dbo.sysjobhistory SJH ON SJ.job_id = SJH.job_id
+WHERE SJH.instance_id = 
+    (SELECT MAX(instance_id) FROM msdb.dbo.sysjobhistory WHERE job_id = SJ.job_id);
+
+✅ 9. Check Last Full/Log Backup
+SELECT 
+    database_name,
+    type = CASE 
+               WHEN type = 'D' THEN 'Full'
+               WHEN type = 'I' THEN 'Differential'
+               WHEN type = 'L' THEN 'Log'
+           END,
+    backup_start_date,
+    backup_finish_date,
+    backup_size/1024/1024 AS SizeMB
+FROM msdb.dbo.backupset
+WHERE backup_start_date > DATEADD(day, -7, GETDATE())
+ORDER BY backup_finish_date DESC;
+
+✅ 10. Check Disk Space (OS Level – xp_cmdshell optional)
+
+If xp_cmdshell is enabled:
+
+EXEC xp_cmdshell 'wmic logicaldisk get size,freespace,caption';
+
+
+If not enabled, skip this step.
+
+✅ 11. Check TempDB Usage
+SELECT 
+    name,
+    (size*8)/1024 AS SizeMB,
+    ((size - FILEPROPERTY(name,'SpaceUsed'))*8)/1024 AS FreeMB
+FROM tempdb.sys.database_files;
+
+✅ 12. Check Error Log for Recent Errors
+EXEC xp_readerrorlog 0, 1, 'error', NULL, GETDATE()-1, GETDATE();
+
+✅ 13. Check High Wait Types
+SELECT TOP 15 
+    wait_type,
+    wait_time_ms/1000 AS WaitSec,
+    waiting_tasks_count,
+    wait_time_ms - signal_wait_time_ms AS ResourceWait,
+    signal_wait_time_ms AS SignalWait
+FROM sys.dm_os_wait_stats
+ORDER BY wait_time_ms DESC;
+
+✅ 14. Check Fragmented Indexes
+SELECT 
+    DB_NAME(database_id) AS DBName,
+    object_name(object_id) AS TableName,
+    index_id,
+    avg_fragmentation_in_percent
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'SAMPLED')
+WHERE avg_fragmentation_in_percent > 30
+ORDER BY avg_fragmentation_in_percent DESC;
